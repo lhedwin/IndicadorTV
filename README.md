@@ -1,0 +1,2 @@
+# IndicadorTV
+Indicador Trading View
