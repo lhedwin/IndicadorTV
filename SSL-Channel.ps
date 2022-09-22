@@ -1,0 +1,124 @@
+/// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+//@version=5
+// © Lopez_Edwin
+indicator('SSL Channel Edwin', overlay=false)
+
+len = input.int(title='Length', defval=10, group='-------------------------------- SSl channel --------------------------------')
+SSL_MA_TYPE = input.string(title='Baseline :', defval='SMA', options=['SMA', 'EMA', 'WMA', 'VWMA', 'SMMA', 'DEMA', 'HULL', 'RMA', 'MCGINLEY', 'TMA1', 'TMA2', 'ZLEMA'])
+
+
+color_ssl_up = color(na)
+color_ssl_down = color(na)
+signal_color_up = color(na)
+signal_color_down = color(na)
+
+
+// ma functions
+ma(len, src, type) =>
+
+    float baseline_return = 0.0
+
+    if type == 'SMA'
+        baseline_return := ta.sma(src, len)
+        baseline_return
+
+    if type == 'EMA'
+        baseline_return := ta.ema(src, len)
+        baseline_return
+
+    if type == 'WMA'
+        baseline_return := ta.wma(src, len)
+        baseline_return
+
+    if type == 'VWMA'
+        baseline_return := ta.vwma(src, len)
+        baseline_return
+
+    if type == 'SMMA'
+        smma = float(0.0)
+        smma := na(smma[1]) ? ta.sma(src, len) : (smma[1] * (len - 1) + src) / len
+        baseline_return := smma
+        baseline_return
+
+    if type == 'DEMA'
+        e1 = ta.ema(src, len)
+        e2 = ta.ema(e1, len)
+        baseline_return := 2 * e1 - e2
+        baseline_return
+
+
+    if type == 'HULL'
+        hullma = ta.wma(2 * ta.wma(src, len / 2) - ta.wma(src, len), math.round(math.sqrt(len)))
+        baseline_return := hullma
+        baseline_return
+
+    if type == 'RMA'
+        baseline_return := ta.rma(src, len)
+        baseline_return
+
+
+    if type == 'MCGINLEY'
+        mg = 0.0
+        mg := na(mg[1]) ? ta.ema(src, len) : mg[1] + (src - mg[1]) / (len * math.pow(src / mg[1], 4))
+        baseline_return := mg
+        baseline_return
+
+    if type == 'TMA1'
+        tma1 = ta.sma(ta.sma(src, len), len)
+        baseline_return := tma1
+        baseline_return
+
+    if type == 'TMA2'
+        tma2 = ta.sma(ta.sma(src, math.ceil(len / 2)), math.floor(len / 2) + 1)
+        baseline_return := tma2
+        baseline_return
+
+    if type == 'ZLEMA'  // Zero-Lag EMA from #fractured
+        f_lag = (len - 1) / 2
+        f_data = src + src - src[f_lag]
+        baseline_return := ta.ema(f_data, len)
+        baseline_return
+
+
+    baseline_return
+
+
+
+// Esta función calcula el ssl channel y lo muestra al pie del grafico
+get_ssl_channel(len, src, type) =>
+    High = float(na)
+    Low = float(na)
+    Hlv = float(na)
+    ssl_channel_up = float(na)
+    ssl_channel_down = float(na)
+
+    High := ma(len, high, type)
+    Low := ma(len, low, type)
+
+    if src > High
+        Hlv := 1
+        Hlv
+    else
+        if src < Low
+            Hlv := -1
+            Hlv
+        else
+            Hlv := Hlv[1]
+            Hlv
+
+    if Hlv < 0
+        ssl_channel_down := High
+        ssl_channel_up := Low
+        ssl_channel_up
+    else
+        ssl_channel_down := Low
+        ssl_channel_up := High
+        ssl_channel_up
+
+    [ssl_channel_up, ssl_channel_down]
+
+[ssl_channel_up, ssl_channel_down] = get_ssl_channel(len, close, SSL_MA_TYPE)
+
+plotshape(ta.crossover(ssl_channel_up, ssl_channel_down) ? ssl_channel_down : na, title='Crossover', location=location.bottom, style=shape.triangleup, size=size.small, color=color.new(color.green, 0))
+plotshape(ta.crossunder(ssl_channel_up, ssl_channel_down) ? ssl_channel_down : na, title='Crossunder', location=location.bottom, style=shape.triangledown, size=size.small, color=color.new(color.red, 0))
+

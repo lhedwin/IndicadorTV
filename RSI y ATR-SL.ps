@@ -1,0 +1,454 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Lopez_Edwin
+
+//@version=5
+indicator('OceanTrade RSI + ATR-SL', overlay=false, format=format.price, precision=2)
+
+show_indi   = input.bool(true,    "Show MFI | RSI", inline="line0")
+showsignals = input.bool(true,    "Show Buy/Sell Signals", inline="line0")
+color_bars  = input.bool(false,   "Bar color", inline="line0")
+indicator   = input.string("RSI", "Option", options=["RSI", "MFI", "AVG"], inline="indi") 
+len         = input.int(14,       "Period", minval=1, inline="indi")
+src         = input.source(close, "Source", inline="indi")
+os          = input.int(30,       "Oversold", minval=0, maxval = 100, inline="over")
+ob          = input.int(70,       "Overbought", minval=0, maxval = 100, inline="over")
+show_smooth = input.bool(false,   "Show Smoothed MFI|RSI", inline="smooth")
+len_smooth  = input.float(8.0,    "  Period", minval=2, step=0.5, inline="smooth")
+showP       = input.bool(true,    "Show Entered RSI Price Level")
+ersi        = input.float(55.0,   "  Entered RSI Input")
+dec         = input.int(2,        "  Decimals", minval=0 , maxval = 10) 
+
+// RSI Multi Time Frame
+show_HTF    = input.bool(false,    "Show MFI|RSI Higher Time Frame")
+TimeframeU  = input.string('Auto', "  Higher Time Frame", options = ['Auto', '1', '3', '5', '10', '15', '30', '60', '120', '180', '240', '360', '480', '720', 'D', 'W', '2W', 'M', '3M', '6M', '12M'])
+rsi_h_col   = input.color(#D7D76B, "  Indicator HTF Color")
+rsi_h_width = input.int(2,         "  Indicator HTF Line Width", minval = 1, maxval = 4)
+
+htf = TimeframeU == 'Auto' ? 
+      timeframe.period == '1' ? '60' : 
+      timeframe.period == '2' ? '60' :
+      timeframe.period == '3' ? '60' : 
+      timeframe.period == '5' ? '60' : 
+      timeframe.period == '10' ? '120' : 
+      timeframe.period == '15' ? '120' : 
+      timeframe.period == '30' ? 'D' : 
+      timeframe.period == '45' ? 'D' : 
+      timeframe.period == '60' ? 'D' : 
+      timeframe.period == '120' ? 'D' : 
+      timeframe.period == '180' ? 'D' : 
+      timeframe.period == '240' ? 'D' : 
+      timeframe.period == 'D' ? 'W' :
+      timeframe.period == 'W' ? 'M' : timeframe.period : TimeframeU
+
+MA_Visible = input.bool(false, "═════════ Show RSI MA ═════════") 
+MA_Period  = input.int(55,          "MA Period", minval=1, step=1, inline ="MA")
+MA_Type    = input.string("NewWMA", "Type", inline ="MA", options=["NewWMA", "JMA", "Wild", "SMA", "EMA", "WMA", "D-WMA", "HMA", "ALMA", "LSMA", "VAMA", "VWMA", "D-VWMA", "Median", "RMA", "DEMA", "TEMA", "SWMA"])
+show_cross = input.bool(true,       "MFI|RSI - MA crossovers")
+show_disp  = input.bool(true,       "Show Dispersion", inline="disp")
+dispersion = input.float(0.1,       "Length", minval=0.01, maxval=1, step=0.01, inline="disp")
+
+// Divergence Input
+divtype         = input.string("Regular", "Divergence Type", options=["Regular", "Hidden", "Both", "None"], group="Divergence")
+showlabel       = input.bool(true, "Show Divergence Label", group="Divergence")
+plotBull        = divtype == "Regular" or divtype == "Both"
+plotHiddenBull  = divtype == "Hidden" or divtype == "Both"
+plotBear        = divtype == "Regular" or divtype == "Both"
+plotHiddenBear  = divtype == "Hidden" or divtype == "Both"
+rangeUpper      = input.int(60, "  Max of Lookback Range", group="Divergence")
+rangeLower      = input.int(05, "  Min of Lookback Range", group="Divergence")
+pivot           = input.int(5,  "  Pivot", minval=2, group="Divergence")
+lbR             = pivot // Pivot Lookback Right
+lbL             = pivot // Pivot Lookback Left
+
+show_indi2 = input.bool(false,   "Show MFI | RSI", group="Second MFI | RSI")
+indicator2 = input.string("MFI", "Option", options=["RSI", "MFI", "AVG"], inline="indi2", group="Second MFI | RSI") 
+len2       = input.int(14,       "Period", minval=1, inline="indi2", group="Second MFI | RSI")
+src2       = input.source(hlc3,  "Source", inline="indi2", group="Second MFI | RSI")
+
+bearColor        = #FF1111
+bullColor        = color.lime
+hiddenBullColor  = color.new(bullColor, 50)
+hiddenBearColor  = color.new(bearColor, 50)
+textColor        = color.white
+noneColor        = color.new(color.white, 100)
+color_black      = color.new(color.black, 10)
+
+f_color(x)  => 
+    (x > 50 and x <= 55) ?
+     #1d39e3 : (x > 55 and x <= 60) ?
+     #1d7be3 : (x > 60 and x <= 65) ?
+     #1dbde3 : (x > 65 and x <= 70) ?
+     #1de3c7 : (x > 70 and x <= 75) ?
+     #1de385 : (x > 75 and x <= 80) ?
+     #1de343 : (x > 80) ?
+     #39e31d : (x < 50 and x >= 45) ?
+     #1d39e3 : (x < 45 and x >= 40) ?
+     #431de3 : (x < 40 and x >= 35) ?
+     #851de3 : (x < 35 and x >= 30) ?
+     #c71de3 : (x < 30 and x >= 25) ?
+     #e31dbd : (x < 25 and x >= 20) ?
+     #e31d7b : (x < 20) ?
+     #e31d39 : #1d39e3
+
+osc  = indicator  == "RSI" ? ta.rsi(src, len)   : indicator == "MFI"  ? ta.mfi(src, len)   : math.avg(ta.rsi(close, len), ta.mfi(hlc3, len)) 
+osc2 = indicator2 == "RSI" ? ta.rsi(src2, len2) : indicator2 == "MFI" ? ta.mfi(src2, len2) : math.avg(ta.rsi(close, len2), ta.mfi(hlc3, len2))
+
+color_rsi = osc > 50 ? #05FFA6 : #FF055D //#FF1111
+color_bg  = osc > 50 ? color.new(#00FF00, 90) : color.new(#FF0000, 90)
+
+float top = na
+float bot = na
+top := ta.pivothigh(osc, lbL, lbR)
+bot := ta.pivotlow(osc, lbL, lbR)
+
+phFound = na(top) ? false : true
+plFound = na(bot) ? false : true
+
+_inRange(cond) =>
+    bars = ta.barssince(cond == true)
+    rangeLower <= bars and bars <= rangeUpper
+
+// Reverse RSI Function
+reverse(Level) =>
+    x1 = (len - 1) * (ta.rma(math.max(nz(src[1],src) - src, 0), len) * Level / (100 - Level) - ta.rma(math.max(src - nz(src[1],src), 0), len))
+    if x1 >= 0
+        src + x1
+    else
+        src + x1 * (100 - Level) / Level
+
+reversi = reverse(ersi)
+
+// Round Function
+Round(src, digits) => 
+    p = math.pow(10, digits)
+    math.round(math.abs(src)*p) / p*math.sign(src)
+
+// Offset 
+xp(offset) => 
+    time + math.round(ta.change(time) * offset)
+
+// Smoothed Function
+super_smooth(Series, Period) => 
+    var PI    = 2.0 * math.asin(1.0)
+    var SQRT2 = math.sqrt(2.0)
+    lambda = PI * SQRT2 / Period
+    a1     = math.exp(-lambda)
+    coeff2 = 2.0 * a1 * math.cos(lambda)
+    coeff3 = - math.pow(a1, 2.0)
+    coeff1 = 1.0 - coeff2 - coeff3
+    filt1  = 0.0
+    filt1 := coeff1 * (Series + nz(Series[1])) * 0.5 + coeff2 * nz(filt1[1]) + coeff3 * nz(filt1[2])
+    filt1
+
+rsi_smooth = super_smooth(osc, len_smooth)
+
+// RSI HTF
+var float last_rsi = na
+rsi_htf = request.security(syminfo.tickerid, htf, osc, lookahead = barmerge.lookahead_on, gaps = barmerge.gaps_off)
+new_htf_bar = ta.change(time(htf)) != 0
+var line rsi_line = na
+
+if show_HTF
+    if new_htf_bar
+        last_rsi := rsi_htf[1]
+        line.delete(rsi_line)
+        rsi_line := line.new(x1 = bar_index , y1 = rsi_htf, x2 = bar_index - 1, y2 = last_rsi, color = rsi_h_col, width = rsi_h_width)
+    else
+        line.set_x1(rsi_line, bar_index)
+        line.set_x2(rsi_line, bar_index - 1)
+        line.set_y1(rsi_line, rsi_htf)
+        rsi_line
+
+// VAMA - Volume Adjusted Moving Average of @allanster
+vama(_src,_len,_fct,_rul,_nvb) =>                             // vama(source,length,factor,rule,sample)
+    tvb = 0, tvb := _nvb == 0 ? nz(tvb[1]) + 1 : _nvb         // total volume bars used in sample            
+    tvs = _nvb == 0 ? ta.cum(volume) : math.sum(volume, _nvb) // total volume in sample
+    v2i = volume / ((tvs / tvb) * _fct)                       // ratio of volume to increments of volume                                                  
+    wtd = _src*v2i                                            // weighted prices 
+    nmb = 1                                                   // initialize number of bars summed back               
+    wtdSumB = 0.0                                             // initialize weighted prices summed back
+    v2iSumB = 0.0                                             // initialize ratio of volume to increments of volume summed back
+    for i = 1 to _len * 10                                    // set artificial cap for strict to VAMA length * 10 to help reduce edge case timeout errors
+        strict = _rul ? false : i == _len                     // strict rule N bars' v2i ratios >= vama length, else <= vama length
+        wtdSumB := wtdSumB + nz(wtd[i-1])                     // increment number of bars' weighted prices summed back
+        v2iSumB := v2iSumB + nz(v2i[i-1])                     // increment number of bars' v2i's summed back
+        if v2iSumB >= _len or strict                          // if chosen rule met
+            break                                             // break (exit loop)
+        nmb := nmb + 1                                        // increment number of bars summed back counter
+    nmb                                                       // number of bars summed back to fulfill volume requirements or vama length
+    wtdSumB                                                   // number of bars' weighted prices summed back
+    v2iSumB                                                   // number of bars' v2i's summed back
+    vama = (wtdSumB - (v2iSumB - _len) * _src[nmb]) / _len    // volume adjusted moving average
+
+// Jurik Moving Average of @everget
+jma(src, length, power, phase) => 
+    phaseRatio = phase < -100 ? 0.5 : phase > 100 ? 2.5 : phase / 100 + 1.5
+    beta = 0.45 * (length - 1) / (0.45 * (length - 1) + 2)
+    alpha = math.pow(beta, power)
+    Jma = 0.0
+    e0 = 0.0
+    e0 := (1 - alpha) * src + alpha * nz(e0[1])
+    e1 = 0.0
+    e1 := (src - e0) * (1 - beta) + beta * nz(e1[1])
+    e2 = 0.0
+    e2 := (e0 + phaseRatio * e1 - nz(Jma[1])) * math.pow(1 - alpha, 2) + math.pow(alpha, 2) * nz(e2[1])
+    Jma := e2 + nz(Jma[1])
+    Jma
+
+// New WMA
+NWMA(_src, _n1) =>
+    fast   = int(_n1 / 2)
+    lambda = _n1 / fast
+    alpha  = lambda * (_n1 - 1) / (_n1 - lambda)
+    ma1    = ta.wma(_src, _n1)
+    ma2    = ta.wma(ma1, fast)
+    nwma   = (1 + alpha) * ma1 - alpha * ma2
+
+ma(MAType, MASource, MAPeriod) =>
+    if MAPeriod > 0
+        if MAType == "SMA"
+            ta.sma(MASource, MAPeriod)
+        else if MAType == "EMA"
+            ta.ema(MASource, MAPeriod)
+        else if MAType == "WMA"
+            ta.wma(MASource, MAPeriod)
+        else if MAType == "RMA"
+            ta.rma(MASource, MAPeriod)
+        else if MAType == "HMA"
+            ta.hma(MASource, MAPeriod)
+        else if MAType == "DEMA"
+            e = ta.ema(MASource, MAPeriod)
+            2 * e - ta.ema(e, MAPeriod)
+        else if MAType == "TEMA"
+            e = ta.ema(MASource, MAPeriod)
+            3 * (e - ta.ema(e, MAPeriod)) + ta.ema(ta.ema(e, MAPeriod), MAPeriod)
+        else if MAType == "VWMA"
+            ta.vwma(MASource, MAPeriod)
+        else if MAType == "ALMA"
+            ta.alma(MASource, MAPeriod, 6, .85)
+        else if MAType == "Median"
+            ta.median(MASource, MAPeriod)
+        else if MAType == "SWMA"
+            ta.swma(MASource)
+        else if MAType == "LSMA"  // Least Squares
+            ta.linreg(MASource, MAPeriod, 0)
+        else if MAType == "Wild"
+            wild = MASource
+            wild := nz(wild[1]) + (MASource - nz(wild[1])) / MAPeriod
+            wild
+        else if MAType == "D-WMA" // Double Weighted Moving Average
+            ta.wma(ta.wma(MASource, MAPeriod), MAPeriod)
+        else if MAType == "D-VWMA" // Double Volume-Weighted Moving Average
+            ta.vwma(ta.vwma(MASource, MAPeriod), MAPeriod)
+        else if MAType == "VAMA" 
+            factor = 0.67 
+            vama(MASource, MAPeriod, factor, true, 0)
+        else if MAType == "NewWMA"
+            NWMA(MASource, MAPeriod)
+        else if MAType == "JMA"
+            jma(MASource, MAPeriod, 2, 50)
+
+MA_RSI = ma(MA_Type, osc, MA_Period)
+dev   = 2 * ta.stdev(osc, 20)
+upper = MA_RSI + dev
+lower = MA_RSI - dev
+disp_up   = MA_RSI + ((upper - lower) * dispersion) 
+disp_down = MA_RSI - ((upper - lower) * dispersion)
+
+//------------------------------------------------------------------------------
+plot(show_indi  ? osc  : na, "MFI|RSI", color_rsi, 2)
+plot(show_indi2 ? osc2 : na, "MFI|RSI", #F2A65A,   2)
+barcolor(color_bars ? f_color(osc) : na, title="MFI|RSI barcolor")
+
+lineBuy  = plot(osc < os ? osc : os, "n/a", noneColor, 1, editable=false)
+lineSell = plot(osc > ob ? osc : ob, "n/a", noneColor, 1, editable=false)
+
+lineBuyBottom = plot(os, "Oversold Level",   color.new(#EFEFBF, 35), 1)
+lineSellTop   = plot(ob, "Overbought Level", color.new(#EFEFBF, 35), 1)
+
+fill(lineSellTop, lineBuyBottom, color_bg, "MFI|RSI Background")
+fill(lineBuy,     lineBuyBottom, show_indi ? color.new(#FF055D, 50) : na, "Oversold Area")
+fill(lineSellTop, lineSell,      show_indi ? color.new(#05FFA6, 50) : na, "Overbought Area")
+hline(50, "Centerline", color.silver, hline.style_dotted)
+
+sellsignals = showsignals and phFound and osc[lbR] and osc[lbR] > ob
+buysignals  = showsignals and plFound and osc[lbR] and osc[lbR] < os
+
+plot(show_indi and buysignals  ? osc[lbR] : na, "Buy Signal in Oversold Area",    color.white, 3, plot.style_circles, offset=-lbR)
+plot(show_indi and buysignals  ? osc[lbR] : na, "Buy Signal in Oversold Area",    bullColor,   2, plot.style_circles, offset=-lbR)
+plot(show_indi and sellsignals ? osc[lbR] : na, "Sell Signal in Overbought Area", color.white, 3, plot.style_circles, offset=-lbR)
+plot(show_indi and sellsignals ? osc[lbR] : na, "Sell Signal in Overbought Area", bearColor,   2, plot.style_circles, offset=-lbR)
+
+lable1(offset, P, T, s, color_PnL) =>
+    label PnL_Label = na
+    PnL_Label := label.new(xp(offset), P, text = T, color=color_PnL, textcolor=color.white, style = s, yloc=yloc.price, xloc=xloc.bar_time, size=size.normal)
+    label.delete(PnL_Label[1])
+
+plot(showP ? ersi : na, "Entered RSI Value", #00C0FFff, trackprice = true , show_last = 1)
+
+if(showP) 
+    lable1(1, ersi, "RSI(" + str.tostring(Round(ersi, dec)) + ") Price : " + str.tostring(Round(reversi, dec)), label.style_label_left, color.new(#00C0FFff, 50))
+ 
+plot(show_smooth ? rsi_smooth : na, "MFI|RSI smoothed", f_color(rsi_smooth), 2)
+
+plot(show_HTF ? rsi_htf : na, "MFI|RSI Higher Time Frame", rsi_h_col, rsi_h_width)
+
+plot(MA_Visible ? MA_RSI : na, "MFI|RSI MA", color.yellow, 1)
+plot(MA_Visible ? MA_RSI[MA_Period-1] : na, "RSI MA Trail", color_black, 2, offset=((MA_Period-1)*-1))
+d1 = plot(show_disp ? disp_up   : na, color=noneColor, editable=false, display=display.none)
+d2 = plot(show_disp ? disp_down : na, color=noneColor, editable=false, display=display.none)
+fill(d1, d2, title = "Dispersion", color = color.new(#FEDF88, 90))
+
+long_rsi_mfi  = ta.crossover(osc, MA_RSI)  and osc < 55
+short_rsi_mfi = ta.crossunder(osc, MA_RSI) and osc > 45
+plotshape(show_cross ? long_rsi_mfi  : na, "Long: Crosses between MFI|RSI and MA",  shape.triangleup,   location.bottom, #80FF00)
+plotshape(show_cross ? short_rsi_mfi : na, "Short: Crosses between MFI|RSI and MA", shape.triangledown, location.top,    #FF4000) 
+
+//------------------------------------------------------------------------------
+// Regular Bullish
+
+oscHL = osc[lbR] > ta.valuewhen(plFound, osc[lbR], 1) and _inRange(plFound[1])
+
+// Price: Lower Low
+priceLL = low[lbR] < ta.valuewhen(plFound, low[lbR], 1)
+
+bullCond = plotBull and priceLL and oscHL and plFound
+
+plot(
+	 show_indi and plFound ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Regular Bullish",
+	 linewidth=1,
+	 color=(bullCond ? bullColor : noneColor)
+	 )
+
+plotshape(
+	 show_indi and bullCond and showlabel ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Regular Bullish Label",
+	 text="R",
+	 style=shape.labelup,
+	 location=location.absolute,
+	 color=bullColor,
+	 textcolor=#000000
+	 )
+
+//------------------------------------------------------------------------------
+// Hidden Bullish
+
+oscLL = osc[lbR] < ta.valuewhen(plFound, osc[lbR], 1) and _inRange(plFound[1])
+
+// Price: Higher Low
+priceHL = low[lbR] > ta.valuewhen(plFound, low[lbR], 1)
+
+hiddenBullCond = plotHiddenBull and priceHL and oscLL and plFound
+
+plot(
+	 show_indi and plFound ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Hidden Bullish",
+	 linewidth=1,
+	 color=(hiddenBullCond ? color.new(hiddenBullColor, 50) : noneColor)
+	 )
+	 
+plotshape(
+	 show_indi and hiddenBullCond and showlabel ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Hidden Bullish Label",
+	 text="H",
+	 style=shape.labelup,
+	 location=location.absolute,
+	 color=color.new(bullColor, 50),
+	 textcolor=#000000
+	 )
+
+//------------------------------------------------------------------------------
+// Regular Bearish
+
+oscLH = osc[lbR] < ta.valuewhen(phFound, osc[lbR], 1) and _inRange(phFound[1])
+
+// Price: Higher High
+priceHH = high[lbR] > ta.valuewhen(phFound, high[lbR], 1)
+
+bearCond = plotBear and priceHH and oscLH and phFound
+
+plot(
+	 show_indi and phFound ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Regular Bearish",
+	 linewidth=1,
+	 color=(bearCond ? bearColor : noneColor)
+	 )
+
+plotshape(
+	 show_indi and bearCond and showlabel ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Regular Bearish Label",
+	 text="R",
+	 style=shape.labeldown,
+	 location=location.absolute,
+	 color=bearColor,
+	 textcolor=textColor
+	 )
+
+//------------------------------------------------------------------------------
+// Hidden Bearish
+
+oscHH = osc[lbR] > ta.valuewhen(phFound, osc[lbR], 1) and _inRange(phFound[1])
+
+// Price: Lower High
+priceLH = high[lbR] < ta.valuewhen(phFound, high[lbR], 1)
+
+hiddenBearCond = plotHiddenBear and priceLH and oscHH and phFound
+
+plot(
+	 show_indi and phFound ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Hidden Bearish",
+	 linewidth=1,
+	 color=(hiddenBearCond ? color.new(hiddenBearColor, 50) : noneColor)
+	 )
+
+plotshape(
+	 show_indi and hiddenBearCond and showlabel ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Hidden Bearish Label",
+	 text="H",
+	 style=shape.labeldown,
+	 location=location.absolute,
+	 color= color.new(bearColor, 50),
+	 textcolor=textColor
+	 ) 
+
+// Alerts
+alertcondition(long_rsi_mfi,  title="Buy signal: Moving average crossover",  message="MFI|RSI Buy signal: Crosses between the indicator and its MA.-")
+alertcondition(short_rsi_mfi, title="Sell signal: Moving average crossover", message="MFI|RSI Sell signal: Crosses between the indicator and its MA.-")
+
+alertcondition(buysignals,  title="Buy signal in oversold zone",    message="MFI|RSI Buy signal in oversold zone.-")
+alertcondition(sellsignals, title="Sell signal in Overbought zone", message="MFI|RSI Sell signal in Overbought zone.-")
+
+alertcondition(bullCond,       title="Regular Bullish Divergence", message="MFI|RSI Regular Bullish Divergence.-")
+alertcondition(hiddenBullCond, title="Hidden Bullish Divergence",  message="MFI|RSI Hidden Bullish Divergence.-")
+alertcondition(bearCond,       title="Regular Bearish Divergence", message="MFI|RSI Regular Bearish Divergence.-")
+alertcondition(hiddenBearCond, title="Hidden Bearish Divergence",  message="MFI|RSI Hidden Bearish Divergence.-")
+
+alertcondition(ta.cross(osc, ob), title="Crossing Overbought", message="MFI|RSI has crossed the overbought threshold.-")
+alertcondition(ta.cross(osc, os), title="Crossing Oversold",   message="MFI|RSI has crossed the oversold threshold.-")
+alertcondition(ta.cross(osc, 50), title="Centerline Cross",    message="MFI|RSI has crossed the centerline.-")
+
+//ART Stop Loss
+// Get inputs
+atrLength = input.int(title='ATR Length', defval=14, minval=1, group='------------------------------- ATR Stop-Loss -------------------------------')
+useStructure = input(title='Use Structure?', defval=true)
+lookback = input.int(title='How Far To Look Back For High/Lows (days)', defval=7, minval=1)
+atrStopMultiplier = input.float(title='ATR Multiplier', defval=1.0, minval=0.1)
+// Calculate data
+atr = ta.atr(atrLength)
+lowestLow = ta.lowest(low, lookback)
+highestHigh = ta.highest(high, lookback)
+longStop = (useStructure ? lowestLow : close) - atr * atrStopMultiplier
+shortStop = (useStructure ? highestHigh : close) + atr * atrStopMultiplier
+// Draw data to chart
+plot(atr, color=color.new(color.blue, 100), linewidth=1, style=plot.style_stepline, title='ATR')
+plot(longStop, color=color.new(color.green, 100), linewidth=1, style=plot.style_stepline, title='Long Stop Loss')
+plot(shortStop, color=color.new(color.red, 100), linewidth=1, style=plot.style_stepline, title='Short Stop Loss')

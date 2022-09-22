@@ -1,12 +1,12 @@
 //@version=5
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © Lopez_Edwin
-indicator(title='Estrategia Sierra MA Ribbon Cross', overlay=true, format=format.price, precision=2, timeframe='')
+indicator(title='Ocean Trade Indicator Top', overlay=true, format=format.price, precision=2, timeframe='')
 short = ta.sma(close, 20)
 mid = ta.sma(close, 50)
 long = ta.sma(close, 200)
 ema3 = ta.ema(close, 200)
-n = input(title='period', defval=50)
+n = input(title='period', defval=50, group = "------------------------- Double HullMA Cross -----------------------------")
 
 n2ma = 2 * ta.wma(close, math.round(n / 2))
 nma = ta.wma(close, n)
@@ -21,18 +21,18 @@ sqn1 = math.round(math.sqrt(n))
 n1 = ta.wma(diff, sqn)
 n2 = ta.wma(diff1, sqn)
 c = n1 > n2 ? color.lime : color.red
-plot(n1, color=c, linewidth=1)
-plot(n2, color=c, linewidth=1)
-plot(ta.cross(n1, n2) ? n1 : na, style=plot.style_cross, color=c, linewidth=4)
+plot(n1, color=c, linewidth=1, title="HullMA A")
+plot(n2, color=c, linewidth=1, title="HullMA B")
+plot(ta.cross(n1, n2) ? n1 : na, style=plot.style_cross, color=c, linewidth=4, title="HullMA Cross")
 plot(short, color=color.new(color.yellow, 0), title="20 MA", linewidth=2)
 plot(mid, color=color.new(color.orange, 0), title="50 MA",  linewidth=2)
 plot(long, color=color.new(color.purple, 0), title="200 MA",  linewidth=2)
 plot(ema3, color=color.new(color.red, 0), title="200 EMA",  linewidth=2)
-plot(ta.cross(short, mid) ? short : na, style=plot.style_cross, linewidth=4, title="20MA/50MA Cross")
-plot(ta.cross(mid, long) ? mid : na, style=plot.style_cross, linewidth=4, title="50MA/200MA Cross")
+plot(ta.cross(short, mid) ? short : na, style=plot.style_cross, color=color.new(color.maroon, 0), linewidth=6, title="20MA/50MA Cross")
+plot(ta.cross(mid, long) ? mid : na, style=plot.style_cross, color=color.new(color.purple, 0), linewidth=6, title="50MA/200MA Cross")
 
 //Supertrend Indicator
-Periods = input(title='ATR Period', defval=10)
+Periods = input(title='ATR Period', defval=10, group = "------------------------------- Supertrend ----------------------------------")
 src = input(hl2, title='Source')
 Multiplier = input.float(title='ATR Multiplier', step=0.1, defval=3.0)
 changeATR = input(title='Change ATR Calculation Method ?', defval=true)
@@ -49,20 +49,141 @@ dn := close[1] < dn1 ? math.min(dn, dn1) : dn
 trend = 1
 trend := nz(trend[1], trend)
 trend := trend == -1 and close > dn1 ? 1 : trend == 1 and close < up1 ? -1 : trend
-upPlot = plot(trend == 1 ? up : na, title='Up Trend', style=plot.style_linebr, linewidth=2, color=color.new(color.green, 0))
+upPlot = plot(trend == 1 ? up : na, title='SuperTrend: Up Trend', style=plot.style_linebr, linewidth=2, color=color.new(color.green, 0))
 buySignal = trend == 1 and trend[1] == -1
-plotshape(buySignal ? up : na, title='UpTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=color.new(color.green, 0))
-plotshape(buySignal and showsignals ? up : na, title='Buy', text='Buy', location=location.absolute, style=shape.labelup, size=size.tiny, color=color.new(color.green, 0), textcolor=color.new(color.white, 0))
-dnPlot = plot(trend == 1 ? na : dn, title='Down Trend', style=plot.style_linebr, linewidth=2, color=color.new(color.red, 0))
+plotshape(buySignal ? up : na, title='SuperTrend: UpTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=color.new(color.green, 0))
+plotshape(buySignal and showsignals ? up : na, title='SuperTrend: Buy', text='Buy', location=location.absolute, style=shape.labelup, size=size.tiny, color=color.new(color.green, 0), textcolor=color.new(color.white, 0))
+dnPlot = plot(trend == 1 ? na : dn, title='SuperTrend: Down Trend', style=plot.style_linebr, linewidth=2, color=color.new(color.red, 0))
 sellSignal = trend == -1 and trend[1] == 1
-plotshape(sellSignal ? dn : na, title='DownTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=color.new(color.red, 0))
-plotshape(sellSignal and showsignals ? dn : na, title='Sell', text='Sell', location=location.absolute, style=shape.labeldown, size=size.tiny, color=color.new(color.red, 0), textcolor=color.new(color.white, 0))
+plotshape(sellSignal ? dn : na, title='SuperTrend: DownTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=color.new(color.red, 0))
+plotshape(sellSignal and showsignals ? dn : na, title='SuperTrend: Sell', text='Sell', location=location.absolute, style=shape.labeldown, size=size.tiny, color=color.new(color.red, 0), textcolor=color.new(color.white, 0))
 mPlot = plot(ohlc4, title='', style=plot.style_circles, linewidth=0)
 longFillColor = highlighting ? trend == 1 ? color.green : color.white : color.white
 shortFillColor = highlighting ? trend == -1 ? color.red : color.white : color.white
-fill(mPlot, upPlot, title='UpTrend Highligter', color=longFillColor, transp=90)
-fill(mPlot, dnPlot, title='DownTrend Highligter', color=shortFillColor, transp=90)
+fill(mPlot, upPlot, title='SuperTrend: UpTrend Highligter', color=longFillColor, transp=90)
+fill(mPlot, dnPlot, title='SuperTrend: DownTrend Highligter', color=shortFillColor, transp=90)
 alertcondition(buySignal, title='SuperTrend Buy', message='SuperTrend Buy!')
 alertcondition(sellSignal, title='SuperTrend Sell', message='SuperTrend Sell!')
 changeCond = trend != trend[1]
 alertcondition(changeCond, title='SuperTrend Direction Change', message='SuperTrend has changed direction!')
+
+//SSL Channel Indicator
+len = input.int(title='Length', defval=10, group='-------------------------------- SSl channel --------------------------------')
+SSL_MA_TYPE = input.string(title='Baseline :', defval='SMA', options=['SMA', 'EMA', 'WMA', 'VWMA', 'SMMA', 'DEMA', 'HULL', 'RMA', 'MCGINLEY', 'TMA1', 'TMA2', 'ZLEMA'])
+
+
+color_ssl_up = color(na)
+color_ssl_down = color(na)
+signal_color_up = color(na)
+signal_color_down = color(na)
+
+
+// Funciones de las MAs
+ma(len, src, type) =>
+
+    float baseline_return = 0.0
+
+    if type == 'SMA'
+        baseline_return := ta.sma(src, len)
+        baseline_return
+
+    if type == 'EMA'
+        baseline_return := ta.ema(src, len)
+        baseline_return
+
+    if type == 'WMA'
+        baseline_return := ta.wma(src, len)
+        baseline_return
+
+    if type == 'VWMA'
+        baseline_return := ta.vwma(src, len)
+        baseline_return
+
+    if type == 'SMMA'
+        smma = float(0.0)
+        smma := na(smma[1]) ? ta.sma(src, len) : (smma[1] * (len - 1) + src) / len
+        baseline_return := smma
+        baseline_return
+
+    if type == 'DEMA'
+        e1 = ta.ema(src, len)
+        e2 = ta.ema(e1, len)
+        baseline_return := 2 * e1 - e2
+        baseline_return
+
+
+    if type == 'HULL'
+        hullma = ta.wma(2 * ta.wma(src, len / 2) - ta.wma(src, len), math.round(math.sqrt(len)))
+        baseline_return := hullma
+        baseline_return
+
+    if type == 'RMA'
+        baseline_return := ta.rma(src, len)
+        baseline_return
+
+
+    if type == 'MCGINLEY'
+        mg = 0.0
+        mg := na(mg[1]) ? ta.ema(src, len) : mg[1] + (src - mg[1]) / (len * math.pow(src / mg[1], 4))
+        baseline_return := mg
+        baseline_return
+
+    if type == 'TMA1'
+        tma1 = ta.sma(ta.sma(src, len), len)
+        baseline_return := tma1
+        baseline_return
+
+    if type == 'TMA2'
+        tma2 = ta.sma(ta.sma(src, math.ceil(len / 2)), math.floor(len / 2) + 1)
+        baseline_return := tma2
+        baseline_return
+
+    if type == 'ZLEMA'  // Zero-Lag EMA from #fractured
+        f_lag = (len - 1) / 2
+        f_data = src + src - src[f_lag]
+        baseline_return := ta.ema(f_data, len)
+        baseline_return
+
+
+    baseline_return
+
+
+
+// Esta función calcula ssl channel y lo muestra al pie del grafico
+get_ssl_channel(len, src, type) =>
+    High = float(na)
+    Low = float(na)
+    Hlv = float(na)
+    ssl_channel_up = float(na)
+    ssl_channel_down = float(na)
+
+    High := ma(len, high, type)
+    Low := ma(len, low, type)
+
+    if src > High
+        Hlv := 1
+        Hlv
+    else
+        if src < Low
+            Hlv := -1
+            Hlv
+        else
+            Hlv := Hlv[1]
+            Hlv
+
+    if Hlv < 0
+        ssl_channel_down := High
+        ssl_channel_up := Low
+        ssl_channel_up
+    else
+        ssl_channel_down := Low
+        ssl_channel_up := High
+        ssl_channel_up
+
+    [ssl_channel_up, ssl_channel_down]
+
+[ssl_channel_up, ssl_channel_down] = get_ssl_channel(len, close, SSL_MA_TYPE)
+
+plotshape(ta.crossover(ssl_channel_up, ssl_channel_down) ? ssl_channel_down : na, title='Crossover', location=location.bottom, style=shape.triangleup, size=size.small, color=color.new(color.green, 0))
+plotshape(ta.crossunder(ssl_channel_up, ssl_channel_down) ? ssl_channel_down : na, title='Crossunder', location=location.bottom, style=shape.triangledown, size=size.small, color=color.new(color.red, 0))
+

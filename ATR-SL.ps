@@ -1,0 +1,21 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Lopez_Edwin
+
+//@version=5
+
+indicator('ATR Plus', overlay=true)
+// Get inputs
+atrLength = input.int(title='ATR Length', defval=14, minval=1, group='------------------------------- ATR Stop-Loss -------------------------------')
+useStructure = input(title='Use Structure?', defval=true)
+lookback = input.int(title='How Far To Look Back For High/Lows (days)', defval=7, minval=1)
+atrStopMultiplier = input.float(title='ATR Multiplier', defval=1.0, minval=0.1)
+// Calculate data
+atr = ta.atr(atrLength)
+lowestLow = ta.lowest(low, lookback)
+highestHigh = ta.highest(high, lookback)
+longStop = (useStructure ? lowestLow : close) - atr * atrStopMultiplier
+shortStop = (useStructure ? highestHigh : close) + atr * atrStopMultiplier
+// Draw data to chart
+plot(atr, color=color.new(color.blue, 100), linewidth=1, style=plot.style_stepline, title='ATR')
+plot(longStop, color=color.new(color.green, 100), linewidth=1, style=plot.style_stepline, title='Long Stop Loss')
+plot(shortStop, color=color.new(color.red, 100), linewidth=1, style=plot.style_stepline, title='Short Stop Loss')
