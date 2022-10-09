@@ -1,11 +1,11 @@
 //@version=5
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © Lopez_Edwin
-indicator(title='Ocean Trade Indicator Top', overlay=true, format=format.price, precision=2, timeframe='')
+indicator(title='OceanTrade Indicator PRO', overlay=true, format=format.price, precision=2, timeframe='')
 short = ta.sma(close, 20)
 mid = ta.sma(close, 50)
 long = ta.sma(close, 200)
-ema3 = ta.ema(close, 200)
+//ema3 = ta.ema(close, 200)
 n = input(title='period', defval=50, group = "------------------------- Double HullMA Cross -----------------------------")
 
 n2ma = 2 * ta.wma(close, math.round(n / 2))
@@ -20,21 +20,23 @@ sqn1 = math.round(math.sqrt(n))
 
 n1 = ta.wma(diff, sqn)
 n2 = ta.wma(diff1, sqn)
-c = n1 > n2 ? color.lime : color.red
+c = n1 > n2 ? color.green : color.red
 plot(n1, color=c, linewidth=1, title="HullMA A")
 plot(n2, color=c, linewidth=1, title="HullMA B")
-plot(ta.cross(n1, n2) ? n1 : na, style=plot.style_cross, color=c, linewidth=4, title="HullMA Cross")
+plot(ta.cross(n1, n2) ? n1 : na, style=plot.style_cross, color=c, linewidth=5, title="HullMA Cross")
 plot(short, color=color.new(color.yellow, 0), title="20 MA", linewidth=2)
 plot(mid, color=color.new(color.orange, 0), title="50 MA",  linewidth=2)
 plot(long, color=color.new(color.purple, 0), title="200 MA",  linewidth=2)
-plot(ema3, color=color.new(color.red, 0), title="200 EMA",  linewidth=2)
-plot(ta.cross(short, mid) ? short : na, style=plot.style_cross, color=color.new(color.maroon, 0), linewidth=6, title="20MA/50MA Cross")
-plot(ta.cross(mid, long) ? mid : na, style=plot.style_cross, color=color.new(color.purple, 0), linewidth=6, title="50MA/200MA Cross")
+//plot(ema3, color=color.new(color.red, 0), title="200 EMA",  linewidth=2)
+plot(ta.cross(short, mid) ? short : na, style=plot.style_cross, color=color.new(color.maroon, 0), linewidth=5, title="20MA/50MA Cross")
+plot(ta.cross(mid, long) ? mid : na, style=plot.style_cross, color=color.new(color.purple, 0), linewidth=5, title="50MA/200MA Cross")
 
 //Supertrend Indicator
-Periods = input(title='ATR Period', defval=10, group = "------------------------------- Supertrend ----------------------------------")
+
+showST = input.bool(false, title="Mostrar SuperTrend", group = " -------------------------------- Supertrend ----------------------------------")
+Periods = input(title='ATR Period', defval=10)
 src = input(hl2, title='Source')
-Multiplier = input.float(title='ATR Multiplier', step=0.1, defval=3.0)
+Multiplier = input.float(title='ATR Multiplier', step=0.1, defval=1.8)
 changeATR = input(title='Change ATR Calculation Method ?', defval=true)
 showsignals = input(title='Show Buy/Sell Signals ?', defval=true)
 highlighting = input(title='Highlighter On/Off ?', defval=true)
@@ -49,14 +51,15 @@ dn := close[1] < dn1 ? math.min(dn, dn1) : dn
 trend = 1
 trend := nz(trend[1], trend)
 trend := trend == -1 and close > dn1 ? 1 : trend == 1 and close < up1 ? -1 : trend
-upPlot = plot(trend == 1 ? up : na, title='SuperTrend: Up Trend', style=plot.style_linebr, linewidth=2, color=color.new(color.green, 0))
+
+upPlot = plot(trend == 1 ? up : na, title='SuperTrend: Up Trend', style=plot.style_linebr, linewidth=3, color=#0097A7)
 buySignal = trend == 1 and trend[1] == -1
-plotshape(buySignal ? up : na, title='SuperTrend: UpTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=color.new(color.green, 0))
-plotshape(buySignal and showsignals ? up : na, title='SuperTrend: Buy', text='Buy', location=location.absolute, style=shape.labelup, size=size.tiny, color=color.new(color.green, 0), textcolor=color.new(color.white, 0))
-dnPlot = plot(trend == 1 ? na : dn, title='SuperTrend: Down Trend', style=plot.style_linebr, linewidth=2, color=color.new(color.red, 0))
+plotshape(buySignal ? up : na, title='SuperTrend: UpTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=#0097A7)
+plotshape(buySignal and showsignals ? up : na, title='SuperTrend: Buy', text='Buy', location=location.absolute, style=shape.labelup, size=size.tiny, color=#0097A7, textcolor=color.new(color.white, 0))
+dnPlot = plot(trend == 1 ? na : dn, title='SuperTrend: Down Trend', style=plot.style_linebr, linewidth=3, color=#FFA726)
 sellSignal = trend == -1 and trend[1] == 1
-plotshape(sellSignal ? dn : na, title='SuperTrend: DownTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=color.new(color.red, 0))
-plotshape(sellSignal and showsignals ? dn : na, title='SuperTrend: Sell', text='Sell', location=location.absolute, style=shape.labeldown, size=size.tiny, color=color.new(color.red, 0), textcolor=color.new(color.white, 0))
+plotshape(sellSignal ? dn : na, title='SuperTrend: DownTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=#FFA726)
+plotshape(sellSignal and showsignals ? dn : na, title='SuperTrend: Sell', text='Sell', location=location.absolute, style=shape.labeldown, size=size.tiny, color=#FFA726, textcolor=color.new(color.white, 0))
 mPlot = plot(ohlc4, title='', style=plot.style_circles, linewidth=0)
 longFillColor = highlighting ? trend == 1 ? color.green : color.white : color.white
 shortFillColor = highlighting ? trend == -1 ? color.red : color.white : color.white
@@ -68,8 +71,9 @@ changeCond = trend != trend[1]
 alertcondition(changeCond, title='SuperTrend Direction Change', message='SuperTrend has changed direction!')
 
 //SSL Channel Indicator
-len = input.int(title='Length', defval=10, group='-------------------------------- SSl channel --------------------------------')
-SSL_MA_TYPE = input.string(title='Baseline :', defval='SMA', options=['SMA', 'EMA', 'WMA', 'VWMA', 'SMMA', 'DEMA', 'HULL', 'RMA', 'MCGINLEY', 'TMA1', 'TMA2', 'ZLEMA'])
+showSSL = input.bool(false, title="Mostrar SSL Channel", group='-------------------------------- SSl channel --------------------------------')
+len = input.int(title='Length', defval=10)
+SSL_MA_TYPE = input.string(title='Baseline :', defval='SMA', options=['SMA', 'EMA', 'WMA', 'VWMA', 'DEMA', 'HULL', 'RMA', 'MCGINLEY', 'TMA1', 'TMA2', 'ZLEMA'])
 
 
 color_ssl_up = color(na)
@@ -99,11 +103,6 @@ ma(len, src, type) =>
         baseline_return := ta.vwma(src, len)
         baseline_return
 
-    if type == 'SMMA'
-        smma = float(0.0)
-        smma := na(smma[1]) ? ta.sma(src, len) : (smma[1] * (len - 1) + src) / len
-        baseline_return := smma
-        baseline_return
 
     if type == 'DEMA'
         e1 = ta.ema(src, len)
@@ -184,6 +183,35 @@ get_ssl_channel(len, src, type) =>
 
 [ssl_channel_up, ssl_channel_down] = get_ssl_channel(len, close, SSL_MA_TYPE)
 
-plotshape(ta.crossover(ssl_channel_up, ssl_channel_down) ? ssl_channel_down : na, title='Crossover', location=location.bottom, style=shape.triangleup, size=size.small, color=color.new(color.green, 0))
-plotshape(ta.crossunder(ssl_channel_up, ssl_channel_down) ? ssl_channel_down : na, title='Crossunder', location=location.bottom, style=shape.triangledown, size=size.small, color=color.new(color.red, 0))
+plotshape(showSSL ? (ta.crossover(ssl_channel_up, ssl_channel_down) ? ssl_channel_down : na) : na, title='Crossover', location=location.bottom, style=shape.triangleup, size=size.small, color=color.new(color.green, 0))
+plotshape(showSSL ? (ta.crossunder(ssl_channel_up, ssl_channel_down) ? ssl_channel_down : na) : na, title='Crossunder', location=location.bottom, style=shape.triangledown, size=size.small, color=color.new(color.red, 0))
 
+
+//EMA CLOUD
+showEMAS   = input.bool(false, title="Mostrar EMAs" , group='--------------------------------  EMA CLOUD  --------------------------------')
+M1 = ta.ema(close, 21)
+M2 = ta.ema(close, 200)
+M3 = ta.ema(close, 89)
+cloudcolor = M1 > M2 ? color.new(color.green, 90) : color.new(color.red, 90)
+M3color = color.new(color.white, 0)
+
+EMA_TYPE = input.string(title='Tipo de EMA Cloud :', defval='EMA YellowBlock Cloud', options=['EMA YellowBlock Cloud', 'EMA Cloud Standard'])
+
+if EMA_TYPE == 'EMA YellowBlock Cloud'
+    M3 := ta.ema(close, 89)
+    M3
+else
+    M3 := ta.ema(close, 50)
+    M3
+
+if EMA_TYPE == 'EMA YellowBlock Cloud'
+    M3color := color.new(color.white, 0)
+    M3color
+else
+    M3color := color.new(color.orange, 0)
+    M3color
+
+P1 = plot(showEMAS ? M1 : na, color=color.new(color.green, 0), linewidth=2, title='EMA 21')
+P2 = plot(showEMAS ? M2 : na, color=color.new(color.red, 0), linewidth=2, title='EMA 200')
+P3 = plot(showEMAS ? M3 : na, color=M3color, linewidth=2, title='EMA 89/50')
+fill(P1, P2, color=cloudcolor, title='Cloud Fill')

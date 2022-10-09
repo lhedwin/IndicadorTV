@@ -1,0 +1,32 @@
+//@version=5
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Lopez_Edwin
+
+indicator('EMA Cloud Pro', overlay=true)
+showEMAS   = input.bool(false, title="Mostrar EMAs" , group='--------------------------------  EMA CLOUD  --------------------------------')
+M1 = ta.ema(close, 21)
+M2 = ta.ema(close, 200)
+M3 = ta.ema(close, 89)
+cloudcolor = M1 > M2 ? color.new(color.green, 90) : color.new(color.red, 90)
+M3color = color.new(color.white, 0)
+
+EMA_TYPE = input.string(title='Tipo de EMA Cloud :', defval='EMA YellowBlock Cloud', options=['EMA YellowBlock Cloud', 'EMA Cloud Standard'])
+
+if EMA_TYPE == 'EMA YellowBlock Cloud'
+    M3 := ta.ema(close, 89)
+    M3
+else
+    M3 := ta.ema(close, 50)
+    M3
+
+if EMA_TYPE == 'EMA YellowBlock Cloud'
+    M3color := color.new(color.white, 0)
+    M3color
+else
+    M3color := color.new(color.orange, 0)
+    M3color
+
+P1 = plot(showEMAS ? M1 : na, color=color.new(color.green, 0), linewidth=2, title='EMA 21')
+P2 = plot(showEMAS ? M2 : na, color=color.new(color.red, 0), linewidth=2, title='EMA 200')
+P3 = plot(showEMAS ? M3 : na, color=M3color, linewidth=2, title='EMA 89/50')
+fill(P1, P2, color=cloudcolor, title='Cloud Fill')

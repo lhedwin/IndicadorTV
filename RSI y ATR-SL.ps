@@ -1,7 +1,7 @@
+//@version=5
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © Lopez_Edwin
 
-//@version=5
 indicator('OceanTrade RSI + ATR-SL', overlay=false, format=format.price, precision=2)
 
 show_indi   = input.bool(true,    "Show MFI | RSI", inline="line0")
@@ -449,6 +449,6 @@ highestHigh = ta.highest(high, lookback)
 longStop = (useStructure ? lowestLow : close) - atr * atrStopMultiplier
 shortStop = (useStructure ? highestHigh : close) + atr * atrStopMultiplier
 // Draw data to chart
-plot(atr, color=color.new(color.blue, 100), linewidth=1, style=plot.style_stepline, title='ATR')
-plot(longStop, color=color.new(color.green, 100), linewidth=1, style=plot.style_stepline, title='Long Stop Loss')
-plot(shortStop, color=color.new(color.red, 100), linewidth=1, style=plot.style_stepline, title='Short Stop Loss')
+plotchar(atr, title="ATR %", char="", location=location.top)
+plotchar(longStop, title="Long Stop Loss %", char="", location=location.top, color=#008000)
+plotchar(shortStop, title="Short Stop Loss %", char="", location=location.top, color=#ff001a)
