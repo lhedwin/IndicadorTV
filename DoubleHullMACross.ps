@@ -1,0 +1,24 @@
+//@version=5
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Lopez_Edwin
+
+indicator('Double HullMA Cross PRO', overlay=true)
+showHullMA = input.bool(false, title="Mostrar HullMA Cross", group = "------------------------- Double HullMA Cross -----------------------------")
+n = input(title='period', defval=50)
+
+n2ma = 2 * ta.wma(close, math.round(n / 2))
+nma = ta.wma(close, n)
+diff = n2ma - nma
+sqn = math.round(math.sqrt(n))
+
+n2ma1 = 2 * ta.wma(close[1], math.round(n / 2))
+nma1 = ta.wma(close[1], n)
+diff1 = n2ma1 - nma1
+sqn1 = math.round(math.sqrt(n))
+
+n1 = ta.wma(diff, sqn)
+n2 = ta.wma(diff1, sqn)
+c = n1 > n2 ? color.green : color.red
+plot(showHullMA ? n1 : na, color=c, linewidth=1, title="HullMA A")
+plot(showHullMA ? n2 : na, color=c, linewidth=1, title="HullMA B")
+plot(showHullMA ? (ta.cross(n1, n2) ? n1 : na) : na, style=plot.style_cross, color=c, linewidth=5, title="HullMA Cross")

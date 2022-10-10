@@ -3,7 +3,7 @@
 // © Lopez_Edwin
 
 indicator('EMA Cloud Pro', overlay=true)
-showEMAS   = input.bool(false, title="Mostrar EMAs" , group='--------------------------------  EMA CLOUD  --------------------------------')
+showEMAS = input.bool(false, title="Mostrar EMAs" , group='--------------------------------  EMA CLOUD  --------------------------------')
 M1 = ta.ema(close, 21)
 M2 = ta.ema(close, 200)
 M3 = ta.ema(close, 89)

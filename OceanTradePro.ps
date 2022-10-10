@@ -2,11 +2,23 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © Lopez_Edwin
 indicator(title='OceanTrade Indicator PRO', overlay=true, format=format.price, precision=2, timeframe='')
+
+//MA Cross
+showMAs = input.bool(false, title="Mostrar Triple MA Cross", group = "------------------------- Triple MA Cross -----------------------------")
 short = ta.sma(close, 20)
 mid = ta.sma(close, 50)
 long = ta.sma(close, 200)
-//ema3 = ta.ema(close, 200)
-n = input(title='period', defval=50, group = "------------------------- Double HullMA Cross -----------------------------")
+
+plot(showMAs ? short : na, color=color.new(color.yellow, 0), title="20 MA", linewidth=2)
+plot(showMAs ? mid : na, color=color.new(color.orange, 0), title="50 MA",  linewidth=2)
+plot(showMAs ? long : na, color=color.new(color.purple, 0), title="200 MA",  linewidth=2)
+
+plot(showMAs ? (ta.cross(short, mid) ? short : na) : na, style=plot.style_cross, color=color.new(color.maroon, 0), linewidth=5, title="20MA/50MA Cross")
+plot(showMAs ? (ta.cross(mid, long) ? mid : na) : na, style=plot.style_cross, color=color.new(color.purple, 0), linewidth=5, title="50MA/200MA Cross")
+
+//Double HullMA Cross
+showHullMA = input.bool(false, title="Mostrar HullMA Cross", group = "------------------------- Double HullMA Cross -----------------------------")
+n = input(title='period', defval=50)
 
 n2ma = 2 * ta.wma(close, math.round(n / 2))
 nma = ta.wma(close, n)
@@ -21,15 +33,9 @@ sqn1 = math.round(math.sqrt(n))
 n1 = ta.wma(diff, sqn)
 n2 = ta.wma(diff1, sqn)
 c = n1 > n2 ? color.green : color.red
-plot(n1, color=c, linewidth=1, title="HullMA A")
-plot(n2, color=c, linewidth=1, title="HullMA B")
-plot(ta.cross(n1, n2) ? n1 : na, style=plot.style_cross, color=c, linewidth=5, title="HullMA Cross")
-plot(short, color=color.new(color.yellow, 0), title="20 MA", linewidth=2)
-plot(mid, color=color.new(color.orange, 0), title="50 MA",  linewidth=2)
-plot(long, color=color.new(color.purple, 0), title="200 MA",  linewidth=2)
-//plot(ema3, color=color.new(color.red, 0), title="200 EMA",  linewidth=2)
-plot(ta.cross(short, mid) ? short : na, style=plot.style_cross, color=color.new(color.maroon, 0), linewidth=5, title="20MA/50MA Cross")
-plot(ta.cross(mid, long) ? mid : na, style=plot.style_cross, color=color.new(color.purple, 0), linewidth=5, title="50MA/200MA Cross")
+plot(showHullMA ? n1 : na, color=c, linewidth=1, title="HullMA A")
+plot(showHullMA ? n2 : na, color=c, linewidth=1, title="HullMA B")
+plot(showHullMA ? (ta.cross(n1, n2) ? n1 : na) : na, style=plot.style_cross, color=c, linewidth=5, title="HullMA Cross")
 
 //Supertrend Indicator
 
@@ -52,15 +58,15 @@ trend = 1
 trend := nz(trend[1], trend)
 trend := trend == -1 and close > dn1 ? 1 : trend == 1 and close < up1 ? -1 : trend
 
-upPlot = plot(trend == 1 ? up : na, title='SuperTrend: Up Trend', style=plot.style_linebr, linewidth=3, color=#0097A7)
+upPlot = plot(showST ? (trend == 1 ? up : na) : na, title='SuperTrend: Up Trend', style=plot.style_linebr, linewidth=3, color=#0097A7)
 buySignal = trend == 1 and trend[1] == -1
-plotshape(buySignal ? up : na, title='SuperTrend: UpTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=#0097A7)
-plotshape(buySignal and showsignals ? up : na, title='SuperTrend: Buy', text='Buy', location=location.absolute, style=shape.labelup, size=size.tiny, color=#0097A7, textcolor=color.new(color.white, 0))
-dnPlot = plot(trend == 1 ? na : dn, title='SuperTrend: Down Trend', style=plot.style_linebr, linewidth=3, color=#FFA726)
+plotshape(showST ? (buySignal ? up : na) : na, title='SuperTrend: UpTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=#0097A7)
+plotshape(showST ? (buySignal and showsignals ? up : na) : na, title='SuperTrend: Buy', text='Buy', location=location.absolute, style=shape.labelup, size=size.tiny, color=#0097A7, textcolor=color.new(color.white, 0))
+dnPlot = plot(showST ? (trend == 1 ? na : dn) : na, title='SuperTrend: Down Trend', style=plot.style_linebr, linewidth=3, color=#FFA726)
 sellSignal = trend == -1 and trend[1] == 1
-plotshape(sellSignal ? dn : na, title='SuperTrend: DownTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=#FFA726)
-plotshape(sellSignal and showsignals ? dn : na, title='SuperTrend: Sell', text='Sell', location=location.absolute, style=shape.labeldown, size=size.tiny, color=#FFA726, textcolor=color.new(color.white, 0))
-mPlot = plot(ohlc4, title='', style=plot.style_circles, linewidth=0)
+plotshape(showST ? (sellSignal ? dn : na) : na, title='SuperTrend: DownTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=#FFA726)
+plotshape(showST ? (sellSignal and showsignals ? dn : na) : na, title='SuperTrend: Sell', text='Sell', location=location.absolute, style=shape.labeldown, size=size.tiny, color=#FFA726, textcolor=color.new(color.white, 0))
+mPlot = plot(showST ? ohlc4 : na, title='', style=plot.style_circles, linewidth=0)
 longFillColor = highlighting ? trend == 1 ? color.green : color.white : color.white
 shortFillColor = highlighting ? trend == -1 ? color.red : color.white : color.white
 fill(mPlot, upPlot, title='SuperTrend: UpTrend Highligter', color=longFillColor, transp=90)
