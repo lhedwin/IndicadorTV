@@ -67,10 +67,10 @@ sellSignal = trend == -1 and trend[1] == 1
 plotshape(showST ? (sellSignal ? dn : na) : na, title='SuperTrend: DownTrend Begins', location=location.absolute, style=shape.circle, size=size.tiny, color=#FFA726)
 plotshape(showST ? (sellSignal and showsignals ? dn : na) : na, title='SuperTrend: Sell', text='Sell', location=location.absolute, style=shape.labeldown, size=size.tiny, color=#FFA726, textcolor=color.new(color.white, 0))
 mPlot = plot(showST ? ohlc4 : na, title='', style=plot.style_circles, linewidth=0)
-longFillColor = highlighting ? trend == 1 ? color.green : color.white : color.white
-shortFillColor = highlighting ? trend == -1 ? color.red : color.white : color.white
-fill(mPlot, upPlot, title='SuperTrend: UpTrend Highligter', color=longFillColor, transp=90)
-fill(mPlot, dnPlot, title='SuperTrend: DownTrend Highligter', color=shortFillColor, transp=90)
+longFillColor = highlighting ? trend == 1 ? color.new(color.green, 90) : color.new(color.white,90) : color.new(color.white,90)
+shortFillColor = highlighting ? trend == -1 ? color.new(color.red,90) : color.new(color.white,90) : color.new(color.white,90)
+fill(mPlot, upPlot, title='SuperTrend: UpTrend Highligter', color=longFillColor)
+fill(mPlot, dnPlot, title='SuperTrend: DownTrend Highligter', color=shortFillColor)
 alertcondition(buySignal, title='SuperTrend Buy', message='SuperTrend Buy!')
 alertcondition(sellSignal, title='SuperTrend Sell', message='SuperTrend Sell!')
 changeCond = trend != trend[1]
@@ -79,7 +79,7 @@ alertcondition(changeCond, title='SuperTrend Direction Change', message='SuperTr
 //SSL Channel Indicator
 showSSL = input.bool(false, title="Mostrar SSL Channel", group='-------------------------------- SSl channel --------------------------------')
 len = input.int(title='Length', defval=10)
-SSL_MA_TYPE = input.string(title='Baseline :', defval='SMA', options=['SMA', 'EMA', 'WMA', 'VWMA', 'DEMA', 'HULL', 'RMA', 'MCGINLEY', 'TMA1', 'TMA2', 'ZLEMA'])
+SSL_MA_TYPE = input.string(title='Baseline :', defval='SMA', options=['SMA', 'EMA', 'WMA', 'VWMA', 'DEMA', 'HULL', 'RMA', 'TMA1', 'TMA2', 'ZLEMA'])
 
 
 color_ssl_up = color(na)
@@ -124,13 +124,6 @@ ma(len, src, type) =>
 
     if type == 'RMA'
         baseline_return := ta.rma(src, len)
-        baseline_return
-
-
-    if type == 'MCGINLEY'
-        mg = 0.0
-        mg := na(mg[1]) ? ta.ema(src, len) : mg[1] + (src - mg[1]) / (len * math.pow(src / mg[1], 4))
-        baseline_return := mg
         baseline_return
 
     if type == 'TMA1'
