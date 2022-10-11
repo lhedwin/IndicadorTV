@@ -200,7 +200,7 @@ if EMA_TYPE == 'EMA YellowBlock Cloud'
     M3 := ta.ema(close, 89)
     M3
 else
-    M3 := ta.ema(close, 50)
+    M3 := ta.ema(close, 55)
     M3
 
 if EMA_TYPE == 'EMA YellowBlock Cloud'
@@ -212,5 +212,5 @@ else
 
 P1 = plot(showEMAS ? M1 : na, color=color.new(color.green, 0), linewidth=2, title='EMA 21')
 P2 = plot(showEMAS ? M2 : na, color=color.new(color.red, 0), linewidth=2, title='EMA 200')
-P3 = plot(showEMAS ? M3 : na, color=M3color, linewidth=2, title='EMA 89/50')
+P3 = plot(showEMAS ? M3 : na, color=M3color, linewidth=2, title='EMA 89/55')
 fill(P1, P2, color=cloudcolor, title='Cloud Fill')
